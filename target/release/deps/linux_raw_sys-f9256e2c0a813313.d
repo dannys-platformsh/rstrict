@@ -1,0 +1,11 @@
+/home/danny/code/personal/landrun/rstrict/target/release/deps/liblinux_raw_sys-f9256e2c0a813313.rmeta: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/elf.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/errno.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/general.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/ioctl.rs
+
+/home/danny/code/personal/landrun/rstrict/target/release/deps/liblinux_raw_sys-f9256e2c0a813313.rlib: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/elf.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/errno.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/general.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/ioctl.rs
+
+/home/danny/code/personal/landrun/rstrict/target/release/deps/linux_raw_sys-f9256e2c0a813313.d: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/elf.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/errno.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/general.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/ioctl.rs
+
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/lib.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/elf.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/errno.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/general.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/linux-raw-sys-0.4.15/src/x86_64/ioctl.rs:

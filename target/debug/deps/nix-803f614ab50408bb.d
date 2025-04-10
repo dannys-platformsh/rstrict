@@ -1,0 +1,13 @@
+/home/danny/code/personal/landrun/rstrict/target/debug/deps/libnix-803f614ab50408bb.rmeta: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/macros.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/errno.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/fcntl.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/mod.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/signal.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/sysinfo.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/time.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/unistd.rs
+
+/home/danny/code/personal/landrun/rstrict/target/debug/deps/nix-803f614ab50408bb.d: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/macros.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/errno.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/fcntl.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/mod.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/signal.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/sysinfo.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/time.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/unistd.rs
+
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/lib.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/macros.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/errno.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/fcntl.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/mod.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/signal.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/sysinfo.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/sys/time.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/nix-0.29.0/src/unistd.rs:

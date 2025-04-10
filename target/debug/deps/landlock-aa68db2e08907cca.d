@@ -1,0 +1,13 @@
+/home/danny/code/personal/landrun/rstrict/target/debug/deps/liblandlock-aa68db2e08907cca.rmeta: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/access.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/compat.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/errors.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/fs.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/net.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/ruleset.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/uapi/mod.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/uapi/landlock.rs
+
+/home/danny/code/personal/landrun/rstrict/target/debug/deps/landlock-aa68db2e08907cca.d: /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/lib.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/access.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/compat.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/errors.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/fs.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/net.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/ruleset.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/uapi/mod.rs /home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/uapi/landlock.rs
+
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/lib.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/access.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/compat.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/errors.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/fs.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/net.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/ruleset.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/uapi/mod.rs:
+/home/danny/.cargo/registry/src/index.crates.io-6f17d22bba15001f/landlock-0.4.1/src/uapi/landlock.rs:

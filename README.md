@@ -1,6 +1,6 @@
 # rstrict
 
-A lightweight, secure sandbox for running Linux processes using Landlock.
+A lightweight, secure sandbox for running Linux processes using the Linux kernel's [Landlock LSM](https://docs.kernel.org/userspace-api/landlock.html), implemented in Rust with the excellent [`landlock-rs`](https://docs.rs/landlock/latest/landlock/) crate.
 
 **rstrict** leverages the Linux **Landlock** security module to sandbox processes, allowing you to run commands with restricted access to the filesystem and network, reducing the potential impact of vulnerabilities or unintended actions.
 

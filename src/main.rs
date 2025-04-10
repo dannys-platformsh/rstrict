@@ -1,5 +1,5 @@
-mod sandbox;
 mod exec;
+mod sandbox;
 mod utils;
 
 use anyhow::{Context, Result};
@@ -8,8 +8,6 @@ use log::{debug, error, info};
 use std::path::PathBuf;
 use std::process;
 use which::which;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// A lightweight, secure sandbox for running Linux processes using Landlock
 #[derive(Parser, Debug)]
@@ -95,7 +93,7 @@ impl LogLevel {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     // Initialize logger
     env_logger::Builder::new()
         .filter_level(cli.log_level.to_filter())
@@ -103,15 +101,15 @@ fn main() -> Result<()> {
         .format_module_path(false)
         .format_target(false)
         .init();
-    
+
     debug!("CLI arguments: {:#?}", cli);
-    
+
     // Ensure we have a command to run
     if cli.command.is_empty() {
         error!("Missing command to run");
         process::exit(1);
     }
-    
+
     // Extract command and args
     let command = cli.command[0].clone();
     let args = if cli.command.len() > 1 {
@@ -119,16 +117,17 @@ fn main() -> Result<()> {
     } else {
         Vec::new()
     };
-    
+
     info!("Command: {}, args: {:?}", command, args);
-    
+
     // Find the full path to the binary
-    let binary_path = which(&command).with_context(|| format!("Failed to find binary: {}", command))?;
+    let binary_path =
+        which(&command).with_context(|| format!("Failed to find binary: {}", command))?;
     let binary_path_str = binary_path.to_string_lossy().to_string();
-    
+
     // Initialize sandbox configuration
     let mut sandbox_config = sandbox::Config::new();
-    
+
     // Copy CLI configuration to sandbox configuration
     sandbox_config.read_only_paths = cli.read_only_paths.clone();
     sandbox_config.read_write_paths = cli.read_write_paths.clone();
@@ -139,44 +138,48 @@ fn main() -> Result<()> {
     sandbox_config.best_effort = cli.best_effort;
     sandbox_config.unrestricted_filesystem = cli.unrestricted_filesystem;
     sandbox_config.unrestricted_network = cli.unrestricted_network;
-    
+
     // Add executable to read-only executable paths if requested
     if cli.add_exec {
         debug!("Adding executable path: {}", binary_path_str);
-        sandbox_config.read_only_executable_paths.push(binary_path.clone());
+        sandbox_config
+            .read_only_executable_paths
+            .push(binary_path.clone());
     }
-    
+
     // Add library dependencies if requested
     if cli.ldd {
         match exec::get_library_dependencies(&binary_path_str) {
             Ok(lib_paths) => {
                 for lib_path in lib_paths {
                     debug!("Adding library path: {}", lib_path);
-                    sandbox_config.read_only_executable_paths.push(PathBuf::from(lib_path));
+                    sandbox_config
+                        .read_only_executable_paths
+                        .push(PathBuf::from(lib_path));
                 }
-            },
+            }
             Err(err) => {
                 error!("Failed to detect library dependencies: {}", err);
                 process::exit(1);
             }
         }
     }
-    
+
     // Process environment variables
     let env_vars = utils::process_environment_vars(&cli.env_vars);
-    
+
     // Apply sandbox configuration
     if let Err(err) = sandbox::apply(&sandbox_config) {
         error!("Failed to apply sandbox: {}", err);
         process::exit(1);
     }
-    
+
     // Execute the command (this should replace the current process)
     if let Err(err) = exec::run(&binary_path_str, &args, &env_vars) {
         error!("Failed to execute command: {}", err);
         process::exit(1);
     }
-    
+
     // We should never reach this point unless exec::run fails
     Ok(())
 }

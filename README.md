@@ -23,7 +23,7 @@ A lightweight, secure sandbox for running Linux processes using the Linux kernel
 
 ## Installation
 
-### From Crates.io (Recommended - if published)
+### From Crates.io (Recommended)
 
 ```bash
 cargo install rstrict

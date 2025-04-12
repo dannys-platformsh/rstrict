@@ -52,9 +52,8 @@ rstrict --log-level info \
         -- \
         curl https://example.com
 ```
-** if pass --rox for the binary to exec and any linked libraries then optional --ldd and --add-exec helpers may be removed. 
+** If pass --rox for the binary to exec and any linked libraries then optional --ldd and --add-exec helpers may be removed. 
 
-```
 
 ## Security Model
 

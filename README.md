@@ -29,18 +29,31 @@ rstrict [OPTIONS] -- <COMMAND> [COMMAND_ARGS...]
 
 Example Sandboxing
 ```bash
-rstrict --log-level debug --ro /tmp --ldd --add-exec -- ls -l /tmp # Allow RO access to /tmp folder
+# allow `ls` and its linked libraries to run, allow access to read /tmp
+rstrict --log-level debug --ro /tmp --ldd --add-exec -- ls -l /tmp 
 
+
+# Curl sandbox example
+# --add-exec Allow executing curl binary (optional helper)
+# --ldd Allow executing curl's libraries (optional helper)
+# --ro Read DNS configuration
+# --ro Read Name service configuration
+# --ro Read Hosts file
+# --ro Read SSL certificates
+# --connect-tcp <port> Allow connections to HTTP Port
 rstrict --log-level info \
-        --add-exec \        # Allow executing curl binary
-        --ldd \             # Allow executing curl's libraries
-        --ro /etc/resolv.conf \  # DNS configuration
-        --ro /etc/nsswitch.conf \ # Name service configuration
-        --ro /etc/hosts \        # Hosts file
-        --ro /etc/ssl/certs \    # SSL certificates
-        --connect-tcp 443 \      # Allow HTTPS connections
+        --add-exec \
+        --ldd \
+        --ro /etc/resolv.conf \
+        --ro /etc/nsswitch.conf \
+        --ro /etc/hosts \
+        --ro /etc/ssl/certs \
+        --connect-tcp 443 \
         -- \
         curl https://example.com
+```
+** if pass --rox for the binary to exec and any linked libraries then optional --ldd and --add-exec helpers may be removed. 
+
 ```
 
 ## Security Model
@@ -239,11 +252,11 @@ This approach ensures the security boundary is established before the target pro
 ```bash
 # Basic filesystem sandbox
 rstrict --log-level info \
-        --ro /bin \         # Allow reading directory contents
-        --add-exec \        # Automatically add /bin/ls with execute permission
-        --ldd \             # Add required libraries with execute permission
+        --ro /home \
+        --add-exec \
+        --ldd \
         -- \
-        ls -l /bin/bash
+        ls -l /home
 ```
 *Output should show details for `/bin/bash`. Trying `ls -l /tmp` would fail with a permission error.*
 
@@ -251,13 +264,13 @@ rstrict --log-level info \
 
 ```bash
 rstrict --log-level info \
-        --add-exec \        # Allow executing curl binary
-        --ldd \             # Allow executing curl's libraries
-        --ro /etc/resolv.conf \  # DNS configuration
-        --ro /etc/nsswitch.conf \ # Name service configuration
-        --ro /etc/hosts \        # Hosts file
-        --ro /etc/ssl/certs \    # SSL certificates
-        --connect-tcp 443 \      # Allow HTTPS connections
+        --add-exec \
+        --ldd \
+        --ro /etc/resolv.conf \
+        --ro /etc/nsswitch.conf \
+        --ro /etc/hosts \
+        --ro /etc/ssl/certs \
+        --connect-tcp 443 \
         -- \
         curl https://example.com
 ```
@@ -275,22 +288,23 @@ mkdir ./my_temp_data
 
 # Run touch with write access to only that directory
 rstrict --log-level info \
-        --rw ./my_temp_data \   # Allow write access only to this directory
-        --add-exec \            # Find and allow executing 'touch'
-        --ldd \                 # Allow executing required libraries
+        --rw ./my_temp_data \
+        --add-exec \
+        --ldd \
         -- \
         touch ./my_temp_data/test_file.txt
 ```
 
-**4. Running a web server on port 8080:**
+**4. Running a web server on port 8080 can connect to MySQL on 3306:**
 
 ```bash
 rstrict --log-level info \
-        --ro /app/static \      # Read-only access to static assets
-        --rw /app/logs \        # Read-write access to logs directory
-        --bind-tcp 8080 \       # Allow binding to port 8080
-        --add-exec \            # Find and allow executing server binary
-        --ldd \                 # Allow executing required libraries
+        --ro /app/static \
+        --rw /app/logs \
+        --bind-tcp 8080 \
+        --connect-tcp 3306 \
+        --add-exec \
+        --ldd \
         -- \
         /app/myserver --port 8080
 ```

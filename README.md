@@ -4,21 +4,144 @@ A lightweight, secure sandbox for running Linux processes using the Linux kernel
 
 **rstrict** leverages the Linux **Landlock** security module to sandbox processes, allowing you to run commands with restricted access to the filesystem and network, reducing the potential impact of vulnerabilities or unintended actions.
 
-## Features
 
-*   **Kernel-level Security:** Uses the Linux Landlock LSM for enforcement.
-*   **Lightweight:** Minimal overhead compared to VMs or heavier container solutions.
-*   **Fine-grained Filesystem Control:** Allow read-only (`--ro`), read-write (`--rw`), read-execute (`--rox`), or read-write-execute (`--rwx`) access recursively beneath specified paths.
-*   **TCP Network Control:** Allow binding (`--bind-tcp`) or connecting (`--connect-tcp`) to specific TCP ports. **(Important:** Landlock network rules currently **only restrict TCP** bind/connect. **UDP, ICMP, and other protocols are NOT restricted** by these rules.)
-*   **Helper Flags:** Simplify common tasks with `--add-exec` (allow executable itself), `--ldd` (allow library dependencies), and `--env` (manage environment variables).
-*   **Configurable Logging:** Adjust verbosity for diagnostics.
+For detailed information about the underlying Landlock security module, see the [official Linux kernel documentation](https://docs.kernel.org/userspace-api/landlock.html).
+
+Quote:
+>The goal of Landlock is to enable restriction of ambient rights (e.g. global filesystem or network access) for a set of processes. Because Landlock is a stackable LSM, it makes it possible to create safe security sandboxes as new security layers in addition to the existing system-wide access-controls. This kind of sandbox is expected to help mitigate the security impact of bugs or unexpected/malicious behaviors in user space applications. Landlock empowers any process, including unprivileged ones, to securely restrict themselves.
+
+> The two existing types of rules are:
+
+> Filesystem rules
+> For these rules, the object is a file hierarchy, and the related filesystem actions are defined with filesystem access rights.
+
+>Network rules (since ABI v4)
+> For these rules, the object is a TCP port, and the related actions are defined with network access rights.
+-- Landlock
+
+## Quick Start Examples
+
+The basic command structure is:
+
+```bash
+rstrict [OPTIONS] -- <COMMAND> [COMMAND_ARGS...]
+```
+
+Example Sandboxing
+```bash
+rstrict --log-level debug --ro /tmp --ldd --add-exec -- ls -l /tmp # Allow RO access to /tmp folder
+
+rstrict --log-level info \
+        --add-exec \        # Allow executing curl binary
+        --ldd \             # Allow executing curl's libraries
+        --ro /etc/resolv.conf \  # DNS configuration
+        --ro /etc/nsswitch.conf \ # Name service configuration
+        --ro /etc/hosts \        # Hosts file
+        --ro /etc/ssl/certs \    # SSL certificates
+        --connect-tcp 443 \      # Allow HTTPS connections
+        -- \
+        curl https://example.com
+```
+
+## Security Model
+
+rstrict follows the fundamental security principle of "deny by default, allow explicitly." When a process is sandboxed with rstrict:
+
+1. **Default Denial**: All handled Landlock operations are denied unless explicitly allowed by rules
+2. **Inheritance**: Restrictions automatically apply to child processes
+3. **Accumulation**: New rules can only add restrictions, never remove them
+4. **Least Privilege**: Target only required resources with minimal permissions
+
+## Features and Landlock Mapping
+
+rstrict provides user-friendly flags that directly map to Landlock's underlying access control mechanisms:
+
+| **Feature Type** | **rstrict Flags** | **Landlock Access Rights** | **Available Since** |
+|------------------|-------------------|-----------------------------|---------------------|
+| **Filesystem Access** | | | |
+| | `--ro <PATH>` | `LANDLOCK_ACCESS_FS_READ_FILE`, `LANDLOCK_ACCESS_FS_READ_DIR` (applied to PATH; recursively if PATH is a directory) | ABI v1 |
+| | `--rw <PATH>` | `--ro` rights + `LANDLOCK_ACCESS_FS_WRITE_FILE`, `LANDLOCK_ACCESS_FS_TRUNCATE`, etc. (applied to PATH; recursively if PATH is a directory) | ABI v1+ |
+| | `--rox <PATH>` | `--ro` rights + `LANDLOCK_ACCESS_FS_EXECUTE` (applied to PATH; recursively if PATH is a directory) | ABI v1 |
+| | `--rwx <PATH>` | `--rw` rights + `LANDLOCK_ACCESS_FS_EXECUTE` (applied to PATH; recursively if PATH is a directory) | ABI v1 |
+| **Network Control** | | | |
+| | `--bind-tcp <PORT>` | `LANDLOCK_ACCESS_NET_BIND_TCP` | ABI v4+ |
+| | `--connect-tcp <PORT>` | `LANDLOCK_ACCESS_NET_CONNECT_TCP` | ABI v4+ |
+| **Helper Functions** | | | |
+| | `--add-exec` | Automatically adds command executable to `--rox` | N/A |
+| | `--ldd` | Automatically adds libraries to `--rox` | N/A |
+| | `--env` | Environment variable management | N/A |
+
+### Filesystem Access Controls
+
+rstrict's filesystem flags provide intuitive access control that maps to Landlock's more granular permissions:
+
+- **`--ro <PATH>`**: Allow read-only access to the specified path
+  - If PATH is a directory: Permissions apply recursively to all files/directories beneath it
+  - If PATH is a file: Permissions apply only to that specific file
+  - Maps to `LANDLOCK_ACCESS_FS_READ_FILE` and `LANDLOCK_ACCESS_FS_READ_DIR`
+  - Example use: Configuration files, static assets
+
+- **`--rw <PATH>`**: Allow read-write access to the specified path
+  - If PATH is a directory: Read-write permissions apply recursively to all files/directories beneath it
+  - If PATH is a file: Read-write permissions apply only to that specific file
+  - Includes all `--ro` rights plus write operations like:
+    - `LANDLOCK_ACCESS_FS_WRITE_FILE`
+    - `LANDLOCK_ACCESS_FS_TRUNCATE` (ABI v3+)
+    - `LANDLOCK_ACCESS_FS_REMOVE_FILE`/`LANDLOCK_ACCESS_FS_REMOVE_DIR`
+    - `LANDLOCK_ACCESS_FS_MAKE_REG`/`LANDLOCK_ACCESS_FS_MAKE_DIR`, etc.
+  - Example use: Log directories, temp folders
+
+- **`--rox <PATH>`**: Allow read and execute access to the specified path
+  - If PATH is a directory: Read-execute permissions apply recursively to all files/directories beneath it
+  - If PATH is a file: Read-execute permissions apply only to that specific file
+  - Includes `--ro` rights plus `LANDLOCK_ACCESS_FS_EXECUTE`
+  - Example use: System libraries, binaries, scripts
+
+- **`--rwx <PATH>`**: Allow read, write, and execute access to the specified path
+  - If PATH is a directory: Read-write-execute permissions apply recursively to all files/directories beneath it
+  - If PATH is a file: Read-write-execute permissions apply only to that specific file
+  - Combines `--rw` and `--rox` permissions
+  - Example use: Application working directories needing full access
+
+### Network Access Controls
+
+rstrict's network flags directly correspond to Landlock's TCP socket controls (available since ABI v4):
+
+- **`--bind-tcp <PORT>`**: Allow binding to the specified TCP port
+  - Maps to `LANDLOCK_ACCESS_NET_BIND_TCP`
+  - Example use: Web servers, database services
+
+- **`--connect-tcp <PORT>`**: Allow outgoing TCP connections to the specified port
+  - Maps to `LANDLOCK_ACCESS_NET_CONNECT_TCP`
+  - Example use: API clients, web scrapers
+
+**Important Note:** Landlock network rules currently **only restrict TCP** bind/connect operations. **UDP, ICMP, and other protocols are NOT restricted** by these rules.
+
+### Helper Flags
+
+rstrict provides convenience flags to simplify common sandboxing tasks:
+
+- **`--add-exec`**: Automatically find `<COMMAND>` in `$PATH` and add it to the `--rox` list
+  - Saves you from having to manually locate and specify the executable path
+
+- **`--ldd`**: Run `ldd` on `<COMMAND>` to find and add shared library dependencies
+  - Automatically discovers and adds libraries with appropriate execute permissions
+  - Adds common system library directories (like `/lib`, `/usr/lib`) to the `--rox` list
+
+- **`--env <VAR>`**: Manage environment variables for the sandboxed process
+  - `--env KEY=VALUE`: Sets an environment variable
+  - `--env KEY`: Inherits a value from the current environment
 
 ## Requirements
 
 *   **Linux Kernel:**
-    *   **5.13+** for basic Landlock filesystem sandboxing.
-    *   **5.19+** recommended for network sandboxing support (used by `landlock-rs` 0.4.1+). *(Note: Your code might depend on specific ABI features available in later kernels; adjust if necessary based on `landlock-rs` version used)*.
-*   **Rust Toolchain:** (Version depends on dependencies, typically the latest stable is recommended for building from source).
+    *   **5.13+** for basic Landlock filesystem sandboxing (ABI v1).
+    *   **5.15+** for `LANDLOCK_ACCESS_FS_REFER` support (ABI v2).
+    *   **5.16+** for truncate operations via `LANDLOCK_ACCESS_FS_TRUNCATE` (ABI v3).
+    *   **5.19+** for network sandboxing via `LANDLOCK_ACCESS_NET_*` (ABI v4).
+    *   **6.2+** for device ioctl control via `LANDLOCK_ACCESS_FS_IOCTL_DEV` (ABI v5).
+    *   **6.5+** for IPC scoping controls (ABI v6).
+*   **Rust Toolchain:** (Latest stable recommended for building from source).
 *   **`ldd` command:** Required *only* if using the `--ldd` helper flag.
 
 ## Installation
@@ -52,9 +175,14 @@ The basic command structure is:
 ```bash
 rstrict [OPTIONS] -- <COMMAND> [COMMAND_ARGS...]
 ```
+The basic command structure is:
 
-*   `[OPTIONS]`: Flags to configure the sandbox rules (see below).
-*   `--`: **Recommended:** Separates `rstrict` options from the command you want to run.
+```bash
+rstrict [OPTIONS] -- <COMMAND> [COMMAND_ARGS...]
+```
+
+*   `[OPTIONS]`: Flags to configure the sandbox rules (see table above).
+*   `--`: **Required:** Separates `rstrict` options from the command you want to run.
 *   `<COMMAND>`: The command to execute inside the sandbox.
 *   `[COMMAND_ARGS...]`: Arguments for the command being executed.
 
@@ -62,29 +190,28 @@ rstrict [OPTIONS] -- <COMMAND> [COMMAND_ARGS...]
 
 **Filesystem Access:**
 
-*   `--ro <PATH>`: Allow read-only access to the specified file or directory path (recursive). Can be used multiple times.
-*   `--rw <PATH>`: Allow read-write access to the specified file or directory path (recursive). Can be used multiple times.
-*   `--rox <PATH>`: Allow read-only *and* execute access to the specified file or directory path (recursive). Needed for executables, libraries, scripts. Can be used multiple times.
-*   `--rwx <PATH>`: Allow read-write *and* execute access to the specified file or directory path (recursive). Can be used multiple times.
+*   `--ro <PATH>`: Allow read-only access to the specified path. If PATH is a directory, permissions apply recursively to everything beneath it. If PATH is a file, permissions apply only to that specific file. Can be used multiple times.
+*   `--rw <PATH>`: Allow read-write access to the specified path. If PATH is a directory, permissions apply recursively to everything beneath it. If PATH is a file, permissions apply only to that specific file. Can be used multiple times.
+*   `--rox <PATH>`: Allow read + execute access to the specified path. If PATH is a directory, permissions apply recursively to everything beneath it. If PATH is a file, permissions apply only to that specific file. Can be used multiple times.
+*   `--rwx <PATH>`: Allow read-write + execute access to the specified path. If PATH is a directory, permissions apply recursively to everything beneath it. If PATH is a file, permissions apply only to that specific file. Can be used multiple times.
 
 **Network Access (TCP Only):**
 
 *   `--bind-tcp <PORT>`: Allow binding to the specified TCP port. Can be used multiple times.
-*   `--connect-tcp <PORT>`: Allow making outgoing TCP connections *only* to the specified port. Can be used multiple times.
+*   `--connect-tcp <PORT>`: Allow outgoing TCP connections to the specified port. Can be used multiple times.
 
 **Helper Flags:**
 
-*   `--add-exec`: Automatically find `<COMMAND>` in `$PATH` and add it to the `--rox` list. Highly recommended.
-*   `--ldd`: Run `ldd` on `<COMMAND>` to find shared library dependencies. Adds the libraries and common system library directories (like `/lib`, `/usr/lib`) to the `--rox` list. **Requires `ldd` to be installed.** This is a convenience flag; manual `--rox` rules are more precise.
+*   `--add-exec`: Automatically find `<COMMAND>` in `$PATH` and add it to the `--rox` list.
+*   `--ldd`: Run `ldd` on `<COMMAND>` to find shared library dependencies and add them to `--rox`.
 *   `--env <VAR>`: Specify environment variables for the sandboxed process.
     *   `--env KEY=VALUE`: Sets the variable `KEY` to `VALUE`.
-    *   `--env KEY`: Inherits the value of `KEY` from `rstrict`'s current environment.
-    *   Can be used multiple times.
+    *   `--env KEY`: Inherits the value of `KEY` from the current environment.
 
 **Unrestricted Access:**
 
-*   `--unrestricted-filesystem`: Disable Landlock filesystem rules. The process will have normal filesystem permissions.
-*   `--unrestricted-network`: Disable Landlock network (TCP) rules. The process will have normal TCP network permissions. **Note:** This does not affect other protocols like UDP which are unrestricted by Landlock anyway.
+*   `--unrestricted-filesystem`: Disable Landlock filesystem rules.
+*   `--unrestricted-network`: Disable Landlock network (TCP) rules.
 
 **Logging & Meta:**
 
@@ -92,30 +219,29 @@ rstrict [OPTIONS] -- <COMMAND> [COMMAND_ARGS...]
 *   `--help`: Show help message and exit.
 *   `--version`: Show version information and exit.
 
-## Permissions Explained
+## How It Works
 
-Landlock operates on a "deny-by-default" principle within the scope of accesses it handles (currently filesystem and TCP network). When you enable Landlock (by providing any restriction rule or not using the `--unrestricted-*` flags), the process loses permissions for the controlled operations *except* those explicitly granted.
+1. **Command Parsing**: rstrict processes command-line flags to build a sandboxing configuration
+2. **Path Resolution**: Paths specified in flags are resolved to their absolute locations
+3. **Library Discovery**: If `--ldd` is used, shared libraries are automatically discovered
+4. **Ruleset Creation**: rstrict creates a Landlock ruleset with the specified access rights
+5. **Rule Addition**: Each path/port rule is added to the ruleset with appropriate permissions
+6. **Self-Restriction**: rstrict applies the ruleset to itself using Landlock's `restrict_self()`
+7. **Command Execution**: rstrict uses `execvpe` to replace itself with the target command
+8. **Inherited Restrictions**: The target command runs with the Landlock restrictions already in place
 
-*   **Filesystem:**
-    *   Access rights (`ReadFile`, `WriteFile`, `Execute`) are granted recursively via `PathBeneath`.
-    *   Directory access rights (`ReadDir`, `RemoveDir`, `MakeDir`, `RemoveFile`, etc.) are automatically included based on whether read or write access is granted to the directory path.
-    *   **Libraries (`.so` files) and the dynamic loader (`ld.so`) require `Execute` permission**, just like the main executable. `--rox` or `--rwx` must be used for paths containing them.
-*   **Network (TCP Only):**
-    *   Landlock gates the `bind()` and `connect()` syscalls for TCP sockets (IPv4/IPv6).
-    *   **UDP traffic, ICMP (ping), UNIX domain sockets, raw sockets, etc., are NOT restricted by Landlock network rules as implemented in `rstrict`.** A process denied TCP connections can still send/receive UDP packets (e.g., for DNS) if otherwise permitted by the system.
+This approach ensures the security boundary is established before the target program begins execution.
 
 ## Examples
 
 **1. Running `ls` with minimal read access:**
 
 ```bash
-# --add-exec finds /bin/ls and adds it as --rox
-# --ldd finds libc.so etc. and adds them/their dirs as --rox
-# Grant read-only access needed to view attributes within /bin
+# Basic filesystem sandbox
 rstrict --log-level info \
-        --ro /bin \
-        --add-exec \
-        --ldd \
+        --ro /bin \         # Allow reading directory contents
+        --add-exec \        # Automatically add /bin/ls with execute permission
+        --ldd \             # Add required libraries with execute permission
         -- \
         ls -l /bin/bash
 ```
@@ -123,28 +249,23 @@ rstrict --log-level info \
 
 **2. Running `curl` to fetch a webpage (HTTPS):**
 
-This requires TCP network access (port 443), filesystem access for DNS configuration, and filesystem access for CA certificates.
-
 ```bash
 rstrict --log-level info \
-        --add-exec \
-        --ldd \
-        --ro /etc/resolv.conf \
-        --ro /etc/nsswitch.conf \
-        --ro /etc/hosts \
-        --ro /etc/ssl/certs \
-        --connect-tcp 443 \
+        --add-exec \        # Allow executing curl binary
+        --ldd \             # Allow executing curl's libraries
+        --ro /etc/resolv.conf \  # DNS configuration
+        --ro /etc/nsswitch.conf \ # Name service configuration
+        --ro /etc/hosts \        # Hosts file
+        --ro /etc/ssl/certs \    # SSL certificates
+        --connect-tcp 443 \      # Allow HTTPS connections
         -- \
         curl https://example.com
 ```
 
-*   `--add-exec`, `--ldd`: Allow `curl` and its libraries to run.
-*   `--ro /etc/resolv.conf`, etc.: Allow `curl` (via libc) to read system DNS configuration files. **This allows the DNS resolver to work.**
-*   `--ro /etc/ssl/certs`: Allow `curl` to read trusted Certificate Authority certificates to verify the HTTPS connection. (Path might vary slightly by distribution).
-*   `--connect-tcp 443`: Allow `curl` to make an outgoing **TCP** connection to port 443 (HTTPS).
-*   **Note:** The actual DNS lookup likely uses **UDP** port 53. This traffic is **not** blocked by `rstrict`'s Landlock rules, as they only apply to TCP. Therefore, DNS resolution succeeds, and only the subsequent TCP connection to port 443 is explicitly controlled and allowed by the `--connect-tcp` rule.
-
-*If you changed `--connect-tcp 443` to `--connect-tcp 442`, `curl` would fail with a TCP connection error. If you removed the `--ro /etc/...` rules, `curl` would fail with a DNS resolution error.*
+*   `--add-exec`, `--ldd`: Allow `curl` and its libraries to run
+*   `--ro /etc/resolv.conf`, etc.: Allow DNS resolver configuration access
+*   `--ro /etc/ssl/certs`: Allow TLS certificate verification
+*   `--connect-tcp 443`: Allow HTTPS connections
 
 **3. Allowing write access to a specific directory:**
 
@@ -152,52 +273,48 @@ rstrict --log-level info \
 # Create a temporary directory first
 mkdir ./my_temp_data
 
-# Run touch inside the sandbox, allowing write access to ./my_temp_data
+# Run touch with write access to only that directory
 rstrict --log-level info \
-        --rw ./my_temp_data \
-        --add-exec \
-        --ldd \
+        --rw ./my_temp_data \   # Allow write access only to this directory
+        --add-exec \            # Find and allow executing 'touch'
+        --ldd \                 # Allow executing required libraries
         -- \
         touch ./my_temp_data/test_file.txt
-
-# Check if the file was created
-ls ./my_temp_data
 ```
-*Output should show `test_file.txt`.*
 
-**4. Passing Environment Variables:**
+**4. Running a web server on port 8080:**
 
 ```bash
 rstrict --log-level info \
-        --env GREETING="Hello Sandbox" \
-        --env USER \
-        --add-exec \
-        --ldd \
+        --ro /app/static \      # Read-only access to static assets
+        --rw /app/logs \        # Read-write access to logs directory
+        --bind-tcp 8080 \       # Allow binding to port 8080
+        --add-exec \            # Find and allow executing server binary
+        --ldd \                 # Allow executing required libraries
         -- \
-        sh -c 'echo "$GREETING | Current user: $USER"'
+        /app/myserver --port 8080
 ```
-*Output should show `Hello Sandbox | Current user: your_username`.*
 
-## How it Works
+## Landlock ABI Version Compatibility
 
-1.  `rstrict` parses its command-line arguments to build a sandbox configuration.
-2.  It resolves paths and potentially runs `ldd` if requested (`--ldd`).
-3.  It uses the excellent **[`landlock-rs`](https://docs.rs/landlock/latest/landlock/index.html)** crate to interact with the Linux kernel's Landlock API. This crate provides safe and ergonomic bindings to the underlying syscalls.
-4.  It defines the access rights it wants to handle (Filesystem Read/Write/Execute, Network TCP Bind/Connect).
-5.  It creates a Landlock "ruleset".
-6.  It adds rules to the ruleset based on the command-line options (e.g., `PathBeneath` rules for filesystem paths, `NetPort` rules for TCP ports).
-7.  It calls `restrict_self()` to apply the Landlock ruleset to the current `rstrict` process.
-8.  Crucially, Landlock rules are inherited on `fork()` and **persist across `execve()`**.
-9.  `rstrict` then uses the `execvpe` syscall (via the `nix` crate) to replace its own process image with the target `<COMMAND>`, passing along any specified environment variables.
-10. The target `<COMMAND>` starts running *already confined* by the Landlock rules applied in step 7.
+rstrict adapts to the available Landlock features on your kernel at runtime. It will use the highest supported ABI version and adjust its behavior accordingly:
+
+| ABI Version | Kernel | Features Added |
+|-------------|--------|---------------|
+| v1 | 5.13+ | Basic filesystem controls (read, write, execute) |
+| v2 | 5.15+ | File linking/renaming between directories (`LANDLOCK_ACCESS_FS_REFER`) |
+| v3 | 5.16+ | File truncation control (`LANDLOCK_ACCESS_FS_TRUNCATE`) |
+| v4 | 5.19+ | TCP network controls (bind, connect) |
+| v5 | 6.2+ | Device IOCTL control (`LANDLOCK_ACCESS_FS_IOCTL_DEV`) |
+| v6 | 6.5+ | IPC scoping (signals, abstract UNIX sockets) |
 
 ## Limitations
 
-*   **Linux Only:** Landlock is a Linux-specific kernel feature. `rstrict` will not work on other operating systems (Windows, macOS, BSD).
-*   **Kernel Version:** Requires a Linux kernel supporting Landlock. See "Requirements" section for specifics. If Landlock is unsupported or specific features are missing, restrictions may not be fully enforced (check logs).
-*   **`--ldd` Dependency:** The `--ldd` flag requires the `ldd` command-line tool to be present and executable. Output parsing might be fragile.
-*   **Network Restrictions (TCP Only):** Landlock network rules currently only apply to TCP `bind()` and `connect()`. **UDP, ICMP, etc., are not restricted.** This means DNS lookups over UDP will typically succeed even if TCP connections are blocked.
-*   **No UID/GID Changes:** `rstrict` does not change user or group IDs. It relies solely on Landlock for confinement within the existing user context.
+*   **Linux Only**: Landlock is a Linux-specific kernel feature.
+*   **Kernel Version**: Features depend on kernel support for specific Landlock ABIs.
+*   **Network Restrictions (TCP Only)**: UDP, ICMP, etc. are not restricted.
+*   **No UID/GID Changes**: rstrict does not change user or group IDs.
+*   **Maximum Ruleset Layers**: Limited to 16 stacked rulesets per process.
 
 ## Contributing
 

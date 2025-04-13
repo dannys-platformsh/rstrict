@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/creslinux/rstrict/actions/workflows/ci.yml/badge.svg)](https://github.com/creslinux/rstrict/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/rstrict.svg)](https://crates.io/crates/rstrict)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://mit-license.org/)
 
 A lightweight, secure sandbox for running Linux processes using the Linux kernel's [Landlock LSM](https://docs.kernel.org/userspace-api/landlock.html), implemented in Rust with the excellent [`landlock-rs`](https://docs.rs/landlock/latest/landlock/) crate.
 
@@ -338,4 +339,4 @@ Contributions (bug reports, feature requests, pull requests) are welcome! Please
 
 ## License
 
-This project is licensed under the **MIT License**.
+This project is licensed under the [MIT License](https://mit-license.org/).

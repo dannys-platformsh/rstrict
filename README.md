@@ -46,7 +46,7 @@ rstrict --log-level debug --ro /tmp --ldd --add-exec -- ls -l /tmp
 # --ro Read Name service configuration
 # --ro Read Hosts file
 # --ro Read SSL certificates
-# --connect-tcp <port> Allow connections to HTTP Port
+# --connect-tcp <port> Allow connections to HTTPS Port
 rstrict --log-level info \
         --add-exec \
         --ldd \
@@ -58,7 +58,7 @@ rstrict --log-level info \
         -- \
         curl https://example.com
 ```
-** If pass --rox for the binary to exec and any linked libraries then optional --ldd and --add-exec helpers may be removed. 
+** `--ldd` and `--add-exec` are optional convenience flags, including the executables path and any dependencies with `--rox` will have the same effect. 
 
 
 ## Security Model

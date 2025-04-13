@@ -1,8 +1,8 @@
 [package]
 name = "rstrict"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
-description = "A Rust-based Landlock sandboxing tool"
+description = "A lightweight CLI to securely exec Linux processes inside the Kernels Landlock LSM sandbox for filesystem and network access control"
 license = "MIT"
 readme = "README.md"
 keywords = ["landlock", "sandbox", "security", "linux"]

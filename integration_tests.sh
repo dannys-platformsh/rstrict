@@ -7,6 +7,24 @@ set -e
 RSTRICT_BIN="./target/release/rstrict"
 TEST_DIR="_test_env" # Use underscore to avoid potential name clashes
 
+# --- Check for Linux ---
+if [ "$(uname -s)" != "Linux" ]; then
+    echo -e "${YELLOW}Warning: This script is designed to run on Linux only.${NC}"
+    echo -e "${YELLOW}Tests will be skipped on this platform.${NC}"
+    exit 0
+fi
+
+# Kernel version check (informational only)
+KERNEL_VERSION=$(uname -r)
+KERNEL_MAJOR=$(echo $KERNEL_VERSION | cut -d. -f1)
+KERNEL_MINOR=$(echo $KERNEL_VERSION | cut -d. -f2)
+
+echo -e "${CYAN}Running on Linux kernel ${KERNEL_VERSION}${NC}"
+if [ "$KERNEL_MAJOR" -lt 5 ] || ([ "$KERNEL_MAJOR" -eq 5 ] && [ "$KERNEL_MINOR" -lt 13 ]); then
+    echo -e "${YELLOW}Note: Some tests may fail on kernel < 5.13 due to limited Landlock support${NC}"
+    echo -e "${YELLOW}Continuing with tests anyway...${NC}"
+fi
+
 # --- Colors for output ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,18 +36,27 @@ print_section() {
     echo -e "\n${CYAN}==== $1 ====${NC}"
 }
 
+# Initialize test failures count and results log
+TEST_FAILURES=0
+# Ensure a clean test results log
+echo "# Test Results - $(date)" > _test_results.log
+
 print_status() {
     echo -e "${YELLOW}[TEST]${NC} $1"
 }
 
 print_success() {
     echo -e "${GREEN}[PASS]${NC} $1"
+    # Log the success for CI to parse
+    echo "[PASS] $1" >> _test_results.log
 }
 
 print_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    # Optionally exit immediately on failure:
-    # exit 1
+    # Add to test failures count (used in CI)
+    TEST_FAILURES=$((TEST_FAILURES+1))
+    # Log the failure for CI to parse
+    echo "[FAIL] $1" >> _test_results.log
 }
 
 # Function to run a test case
@@ -54,11 +81,8 @@ run_test() {
         return 0
     else
         print_fail "$name (Expected Exit: $expected_exit, Got: $exit_code)"
-        # Optionally capture and print stdout/stderr here if needed for debugging
-        # local output
-        # output=$( "$@" 2>&1 )
-        # echo -e "Output was:\n$output"
-        return 1 # Signal failure
+        # Don't exit, just track the failure and continue
+        return 0
     fi
 }
 
@@ -307,7 +331,7 @@ run_test "Env: Set variable overrides inherited (--env VAR --env VAR=val)" 0 \
 # --- Final Summary ---
 print_section "Summary"
 
-echo "Test script finished."
+echo "Test script finished with $TEST_FAILURES failures."
 
 # --- Cleanup ---
 print_section "Cleanup"
@@ -315,5 +339,25 @@ echo "Removing test environment $TEST_DIR..."
 rm -rf "$TEST_DIR"
 echo "Cleanup complete."
 
-echo -e "${GREEN}All tests defined in script have run.${NC}"
-exit 0
+# Add summary to test results log file
+PASSED_COUNT=$(grep -c "\[PASS\]" _test_results.log || echo "0")
+TOTAL_COUNT=$((PASSED_COUNT + TEST_FAILURES))
+echo "" >> _test_results.log
+echo "# Summary: $PASSED_COUNT/$TOTAL_COUNT tests passed, $TEST_FAILURES failures" >> _test_results.log
+if [ "$TEST_FAILURES" -gt 0 ]; then
+    echo "# Failed tests:" >> _test_results.log
+    grep "\[FAIL\]" _test_results.log | sed 's/\[FAIL\]/  /' >> _test_results.log
+fi
+
+# Final test results and detailed summary for terminal output
+if [ "$TEST_FAILURES" -gt 0 ]; then
+    echo -e "${RED}FAILED: Tests completed with $TEST_FAILURES failures.${NC}"
+    echo
+    echo -e "${RED}Failed tests:${NC}"
+    grep "\[FAIL\]" _test_results.log | sed 's/\[FAIL\]/  /'
+    echo
+    exit 1
+else
+    echo -e "${GREEN}SUCCESS: All tests passed successfully!${NC}"
+    exit 0
+fi

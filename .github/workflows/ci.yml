@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cargo Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Build
+      run: cargo build --verbose
+      
+    - name: Check Kernel Version
+      run: |
+        KERNEL_VERSION=$(uname -r)
+        KERNEL_MAJOR=$(echo $KERNEL_VERSION | cut -d. -f1)
+        KERNEL_MINOR=$(echo $KERNEL_VERSION | cut -d. -f2)
+        echo "Kernel version: $KERNEL_VERSION"
+        if [ "$KERNEL_MAJOR" -lt 5 ] || ([ "$KERNEL_MAJOR" -eq 5 ] && [ "$KERNEL_MINOR" -lt 13 ]); then
+          echo "⚠️ Note: Some tests may fail on kernel < 5.13 due to limited Landlock support"
+        fi
+    
+    - name: Run Unit Tests
+      run: cargo test
+      
+    - name: Run Integration Tests
+      run: bash integration_tests.sh
+      continue-on-error: true  # Allow the script to fail on kernels without Landlock
+      
+    - name: Check Test Results
+      run: |
+        if [ -f "_test_results.log" ]; then
+          # Use safer numeric handling with explicit defaults
+          FAILURES=$(grep -c "\\[FAIL\\]" _test_results.log || true)
+          FAILURES=${FAILURES:-0}
+          
+          PASSED=$(grep -c "\\[PASS\\]" _test_results.log || true)
+          PASSED=${PASSED:-0}
+          
+          # Calculate total ensuring numeric values
+          TOTAL=$((FAILURES + PASSED))
+          
+          echo "::group::Complete Test Results"
+          cat _test_results.log
+          echo "::endgroup::"
+          
+          echo "Test Summary: $PASSED/$TOTAL tests passed ($FAILURES failures)"
+          
+          if [ "$FAILURES" -gt 0 ]; then
+            echo "::error::$FAILURES test(s) failed!"
+            echo "Failed tests:"
+            grep "\\[FAIL\\]" _test_results.log || true
+            exit 1
+          else
+            echo "::notice::All $TOTAL tests passed successfully!"
+          fi
+        else
+          echo "::warning::Test results log not found. Tests may not have run."
+        fi
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: _test_results.log
+        if-no-files-found: ignore

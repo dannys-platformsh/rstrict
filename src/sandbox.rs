@@ -234,3 +234,32 @@ pub fn apply(config: &Config) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_new() {
+        let config = Config::new();
+        
+        assert!(config.read_only_paths.is_empty());
+        assert!(config.read_write_paths.is_empty());
+        assert!(config.read_only_executable_paths.is_empty());
+        assert!(config.read_write_executable_paths.is_empty());
+        assert!(config.bind_tcp_ports.is_empty());
+        assert!(config.connect_tcp_ports.is_empty());
+        assert!(!config.best_effort);
+        assert!(!config.unrestricted_filesystem);
+        assert!(!config.unrestricted_network);
+    }
+
+    #[test]
+    fn test_ruleset_creation() {
+        // This test simply attempts to create a ruleset
+        // It will pass regardless of whether Landlock is supported
+        // We're just testing that the code doesn't panic
+        let ruleset = Ruleset::default();
+        let _ = ruleset.create(); // Might succeed or fail depending on kernel support
+    }
+}
